@@ -1,0 +1,246 @@
+import os
+import json
+import requests
+
+from database import init_db, is_new
+from filter_jobs import filter_jobs
+from utils import get_best_link
+from email_gmail import send_email   # change to email_outlook if needed
+from email_batches import chunk_jobs
+
+
+# -----------------------
+# ENV & SAFETY CHECK
+# -----------------------
+API_KEY = os.getenv("SERP_API_KEY")
+
+if not API_KEY:
+    raise Exception("SERP_API_KEY not found. Restart terminal and try again.")
+
+
+# -----------------------
+# INIT DATABASE
+# -----------------------
+init_db()
+
+
+# -----------------------
+# LOAD CONFIG
+# -----------------------
+companies = json.load(open("config/companies.json"))
+roles = json.load(open("config/roles.json"))
+
+
+# -----------------------
+# SERPAPI BASE PARAMS
+# -----------------------
+params_base = {
+    "engine": "google_jobs",
+    "location": "India",
+    "google_domain": "google.co.in",
+    "hl": "en",
+    "gl": "in",
+    "api_key": API_KEY
+}
+
+
+# -----------------------
+# FETCH JOBS (ROLE LOOP)
+# -----------------------
+PRIMARY_QUERY = (
+    "Solutions Consultant OR Pre Sales OR Solutions Engineer "
+    "OR Customer Success OR Technical Account Manager"
+)
+
+params = {
+    "engine": "google_jobs",
+    "q": PRIMARY_QUERY,
+    "location": "India",
+    "google_domain": "google.co.in",
+    "hl": "en",
+    "gl": "in",
+    "api_key": API_KEY
+}
+
+response = requests.get("https://serpapi.com/search", params=params)
+response.raise_for_status()
+
+all_jobs = response.json().get("jobs_results", [])
+
+print(f"Fetched {len(all_jobs)} jobs in single API call")
+# all_jobs = []
+
+# for role in roles:
+#     params = params_base.copy()
+#     params["q"] = role
+
+#     response = requests.get("https://serpapi.com/search", params=params)
+#     response.raise_for_status()
+
+#     role_jobs = response.json().get("jobs_results", [])
+#     print(f"Fetched {len(role_jobs)} jobs for role: {role}")
+
+#     all_jobs.extend(role_jobs)
+
+
+# print(f"\nTotal jobs fetched: {len(all_jobs)}")
+
+
+# -----------------------
+# FILTER JOBS
+# -----------------------
+strict_jobs, relaxed_jobs = filter_jobs(all_jobs, companies, roles)
+
+print(f"Strict jobs: {len(strict_jobs)}")
+print(f"Relaxed jobs: {len(relaxed_jobs)}")
+
+
+# -----------------------
+# DEDUPLICATION
+# -----------------------
+strict_new = []
+relaxed_new = []
+
+for job in strict_jobs:
+    job_id = "strict_" + (job.get("job_id") or job.get("title"))
+    if is_new(job_id):
+        strict_new.append(job)
+
+for job in relaxed_jobs:
+    job_id = "relaxed_" + (job.get("job_id") or job.get("title"))
+    if is_new(job_id):
+        relaxed_new.append(job)
+
+
+# -----------------------
+# EMAIL CONTENT
+# -----------------------
+if not strict_new and not relaxed_new:
+    print("No new matching jobs found today.")
+else:
+    html = "<h2>Daily Job Alerts – Himasree</h2>"
+
+    if strict_new:
+        html += "<h3>⭐ Priority Jobs (Target Companies)</h3><ul>"
+        for job in strict_new:
+            html += (
+                f"<li><b>{job.get('title')}</b> – {job.get('company_name')}<br>"
+                f"<a href='{get_best_link(job)}'>Apply here</a></li><br>"
+            )
+        html += "</ul>"
+
+    if relaxed_new:
+        html += "<h3>⚡ Additional Relevant Roles</h3><ul>"
+        for job in relaxed_new[:5]:  # limit to avoid overload
+            html += (
+                f"<li><b>{job.get('title')}</b> – {job.get('company_name')}<br>"
+                f"<a href='{get_best_link(job)}'>Apply here</a></li><br>"
+            )
+        html += "</ul>"
+
+    send_email("Daily Job Alerts – Himasree", html)
+    print("Job alert email sent successfully.")
+# import os
+# import json
+# import requests
+# from database import init_db, is_new
+# from filter_jobs import filter_jobs
+# from utils import get_best_link
+# from email_gmail import send_email   # or email_outlook
+
+# API_KEY = os.getenv("SERP_API_KEY")
+
+# if not API_KEY:
+#     raise Exception("SERP_API_KEY not found")
+
+# init_db()
+
+# # Load config
+# companies = json.load(open("config/companies.json"))
+# roles = json.load(open("config/roles.json"))
+
+# query = " OR ".join(roles)
+
+# params = {
+#     "engine": "google_jobs",
+#     "q": query,
+#     "location": "India",
+#     "api_key": API_KEY
+# }
+# print("Job search query:", query)
+# response = requests.get("https://serpapi.com/search", params=params)
+# response.raise_for_status()
+
+# # jobs = response.json().get("jobs_results", [])
+# # strict_jobs, relaxed_jobs = filter_jobs(jobs, companies, roles)
+# jobs = response.json().get("jobs_results", [])
+# strict_jobs, relaxed_jobs = filter_jobs(jobs, companies, roles)
+
+# print(f"Total jobs fetched: {len(jobs)}")
+# print(f"Strict jobs: {len(strict_jobs)}")
+# print(f"Relaxed jobs: {len(relaxed_jobs)}")
+
+# strict_new = []
+# relaxed_new = []
+
+# for job in strict_jobs:
+#     job_id = "strict_" + (job.get("job_id") or job.get("title"))
+#     if is_new(job_id):
+#         strict_new.append(job)
+
+# for job in relaxed_jobs:
+#     job_id = "relaxed_" + (job.get("job_id") or job.get("title"))
+#     if is_new(job_id):
+#         relaxed_new.append(job)
+
+# if not strict_new and not relaxed_new:
+#     print("No new matching jobs found today.")
+# else:
+#     html = "<h2>Daily Job Alerts – Himasree</h2>"
+
+#     if strict_new:
+#         html += "<h3>⭐ Priority Jobs (Target Companies)</h3><ul>"
+#         for job in strict_new:
+#             html += f"<li><b>{job.get('title')}</b> – {job.get('company_name')}<br>"
+#             html += f"<a href='{get_best_link(job)}'>Apply here</a></li><br>"
+#         html += "</ul>"
+
+#     if relaxed_new:
+#         html += "<h3>⚡ Additional Relevant Roles</h3><ul>"
+#         for job in relaxed_new[:5]:  # limit to avoid overload
+#             html += f"<li><b>{job.get('title')}</b> – {job.get('company_name')}<br>"
+#             html += f"<a href='{get_best_link(job)}'>Apply here</a></li><br>"
+#         html += "</ul>"
+
+#     send_email("Daily Job Alerts – Himasree", html)
+#     print("Job alert email sent successfully.")
+# import os
+# import json
+# import requests
+# from fetch_jobs import fetch_jobs
+# from filter_jobs import filter_jobs
+# from database import init_db, is_new
+# from email_gmail import send_email   # change to email_outlook if needed
+
+# init_db()
+
+# companies = json.load(open("config/companies.json"))
+# roles = json.load(open("config/roles.json"))
+
+# query = " OR ".join(roles)
+# jobs = fetch_jobs(query)
+# filtered = filter_jobs(jobs, companies, roles)
+
+# new_jobs = []
+# for job in filtered:
+#     job_id = job.get("job_id")
+#     if job_id and is_new(job_id):
+#         new_jobs.append(job)
+
+# if new_jobs:
+#     body = "<h3>New Job Alerts</h3><ul>"
+#     for job in new_jobs:
+#         body += f"<li><a href='{job['link']}'>{job['title']} – {job['company_name']}</a></li>"
+#     body += "</ul>"
+
+#     send_email("Daily Job Alerts – Himasree", body)

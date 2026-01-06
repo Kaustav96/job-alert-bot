@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.himasree.jobalerts</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/run_job_alert.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+      <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+      </dict>
+      <dict>
+        <key>Hour</key>
+        <integer>20</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+      </dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/logs/launchd.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/logs/launchd.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+  </dict>
+</plist>
+<!-- <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN">
+
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.himasree.jobalerts</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/src/main.py</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/logs/out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/wolverine/Desktop/Kaustav/KaustavLatest/job-alert-bot/logs/error.log</string>
+</dict>
+</plist> -->
