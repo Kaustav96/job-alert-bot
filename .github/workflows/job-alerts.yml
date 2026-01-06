@@ -2,10 +2,11 @@ name: Job Alerts Automation
 
 permissions:
   contents: write
-  
+
 on:
   schedule:
-    - cron: "30 15 * * *"   # 9:00 PM IST (UTC 15:30)
+    - cron: "30 2 * * *"   # 8:00 AM IST
+    - cron: "30 14 * * *"  # 8:00 PM IST
   workflow_dispatch:
 
 jobs:
