@@ -1,196 +1,188 @@
-📬 Job Alert Automation – Resume-Aware Cloud System
+# 📬 Job Alert Automation – Resume‑Aware Cloud System
 
-A fully automated, resume-aware job alert system that fetches relevant roles, scores them against a resume, prioritizes target companies, and sends curated email alerts — running entirely on GitHub Actions (cloud).
+A **production‑grade, resume‑aware job alert system** that fetches relevant roles, scores them against a resume, prioritizes target companies, and sends curated email alerts — running **entirely on GitHub Actions (cloud)**.
 
-⸻
+---
 
-🚀 Key Features
-	•	🔍 Fetches jobs via SerpAPI (Google Jobs)
-	•	🧠 Resume-based match scoring
-	•	🎯 Target-company prioritization
-	•	📊 Role-wise grouping & sorting
-	•	✉️ Single clean HTML email
-	•	⏰ Runs twice daily (8 AM & 8 PM IST)
-	•	☁️ Fully cloud-hosted (no laptop required)
-	•	🔐 Secure secrets via GitHub Actions
+## 🚀 Key Features
 
-⸻
+- 🔍 Fetches jobs via **SerpAPI (Google Jobs)**
+- 🧠 Resume‑based **match scoring (%)**
+- 🎯 Target‑company prioritization
+- 📊 Role‑wise grouping & score‑based sorting
+- ✉️ Single clean HTML email (To + BCC supported)
+- ⏰ Runs **twice daily (8 AM & 8 PM IST)**
+- ☁️ Fully cloud‑hosted (no laptop required)
+- 🔐 Secrets managed via GitHub Actions
 
-🏗️ High-Level Architecture (HLD)
+---
 
-┌──────────────────┐
-│  GitHub Actions  │  (Cron: 8 AM & 8 PM IST)
-└────────┬─────────┘
-         │
-         ▼
+## 🏗️ High‑Level Design (HLD)
+
+```
 ┌──────────────────────────┐
-│  Python Orchestrator     │  src/main.py
-│  - Fetch jobs per role   │
-│  - Deduplicate jobs      │
-│  - Score vs resume       │
-└────────┬─────────────────┘
-         │
-         ▼
+│     GitHub Actions       │
+│  (Cron Scheduler – UTC)  │
+└─────────────┬────────────┘
+              │
+              ▼
 ┌──────────────────────────┐
-│  Job Sources             │
-│  SerpAPI (Google Jobs)   │
-└────────┬─────────────────┘
-         │
-         ▼
+│     main.py (Orchestrator)│
+│  • Load roles & companies │
+│  • Fetch jobs per role    │
+│  • Deduplicate jobs       │
+│  • Resume match scoring   │
+└─────────────┬────────────┘
+              │
+              ▼
 ┌──────────────────────────┐
-│  Resume Matcher          │
-│  - Keyword extraction    │
-│  - Match scoring (%)     │
-└────────┬─────────────────┘
-         │
-         ▼
+│        SerpAPI            │
+│     (Google Jobs API)     │
+└─────────────┬────────────┘
+              │
+              ▼
 ┌──────────────────────────┐
-│  Email Composer          │
-│  - Role-wise sections    │
-│  - Sorted by score       │
-└────────┬─────────────────┘
-         │
-         ▼
+│     Resume Matcher        │
+│  Keyword overlap scoring  │
+└─────────────┬────────────┘
+              │
+              ▼
 ┌──────────────────────────┐
-│  Gmail SMTP              │
-│  (Secure App Password)   │
+│      Email Generator      │
+│  Role‑wise HTML email     │
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│     Gmail SMTP Server     │
 └──────────────────────────┘
+```
 
+---
 
-⸻
+## 🔁 End‑to‑End Execution Flow
 
-🔁 End-to-End Flow Diagram
-
+```
 [ GitHub Cron Trigger ]
-           │
-           ▼
+          ↓
 [ main.py starts ]
-           │
-           ▼
+          ↓
 [ Load roles + target companies ]
-           │
-           ▼
-[ Call SerpAPI per role ]
-           │
-           ▼
-[ Deduplicate via jobs.db ]
-           │
-           ▼
+          ↓
+[ Fetch jobs (SerpAPI, per role) ]
+          ↓
+[ Deduplicate via SQLite jobs.db ]
+          ↓
 [ Compute resume match score ]
-           │
-           ▼
-[ Group by role ]
-    │            │
-    ▼            ▼
-[ Target Co ]  [ Other Co ]
-    │            │
-    └──────┬─────┘
-           ▼
-[ Sort by match score ]
-           │
-           ▼
-[ Build HTML email ]
-           │
-           ▼
-[ Send single email ]
-           │
-           ▼
-[ Update jobs.db & commit ]
+          ↓
+[ Group jobs by role ]
+          ↓
+[ Prioritize target companies ]
+          ↓
+[ Sort by match score (desc) ]
+          ↓
+[ Build single HTML email ]
+          ↓
+[ Send email (To + BCC) ]
+          ↓
+[ Commit updated jobs.db ]
+```
 
+---
 
-⸻
+## 🧩 Low‑Level Design (LLD)
 
-🧩 Low-Level Design (LLD)
-
-1️⃣ main.py (Orchestrator)
+### 1️⃣ main.py (Core Orchestrator)
 
 Responsibilities:
-	•	Load config (roles.json, companies.json)
-	•	Fetch jobs role-by-role
-	•	Deduplicate using SQLite (jobs.db)
-	•	Call resume matcher
-	•	Sort & group jobs
-	•	Trigger email
+- Reads `roles.json` and `companies.json`
+- Fetches jobs role‑by‑role
+- Computes resume match score
+- Groups & sorts jobs
+- Sends consolidated email
+- Updates persistent SQLite DB
 
-⸻
+---
 
-2️⃣ Resume Matching Engine
+### 2️⃣ Resume Matching Engine
 
-File: resume_parser/matcher_job.py
+**Path:** `resume_parser/matcher_job.py`
 
-resume.pdf
-   │
-   ▼
-[ Text extraction ]
-   │
-   ▼
-[ Keyword normalization ]
-   │
-   ▼
-[ Job description keywords ]
-   │
-   ▼
-[ Overlap calculation ]
-   │
-   ▼
-[ Match Score (%) ]
+```
+Resume PDF
+   ↓
+Text Extraction
+   ↓
+Keyword Normalization
+   ↓
+Job Description Keywords
+   ↓
+Overlap Calculation
+   ↓
+Match Score (%)
+```
 
-Scoring considers:
-	•	Role relevance
-	•	Skill overlap
-	•	Tool & tech keywords
+Scoring factors:
+- Skill keywords
+- Tools & technologies
+- Role relevance
 
-⸻
+---
 
-3️⃣ Deduplication Layer
+### 3️⃣ Deduplication Layer
 
-File: database.py
-	•	SQLite database (data/jobs.db)
-	•	Stores unique job IDs
-	•	Prevents duplicate alerts across runs
-	•	Persisted via GitHub commit
+**Path:** `database.py`
 
-⸻
+- SQLite DB: `data/jobs.db`
+- Stores unique job IDs
+- Prevents duplicate alerts across runs
+- Persisted by committing DB back to GitHub
 
-4️⃣ Email Layer
+---
 
-File: email_gmail.py
-	•	HTML email
-	•	Role-wise sections
-	•	Target companies shown first
-	•	Sorted by match score
-	•	Secure SMTP via Gmail App Password
+### 4️⃣ Email Layer
 
-⸻
+**Path:** `email_gmail.py`
 
-☁️ Cloud Deployment (GitHub Actions)
+- HTML‑formatted email
+- Role‑wise sections
+- Target companies shown first
+- Sorted by match score
+- Supports **To + BCC**
 
-Workflow: .github/workflows/job-alerts.yml
-	•	Uses GitHub-hosted runners
-	•	Python 3.11
-	•	Secrets injected securely
-	•	Cron-based scheduling
-	•	Commits updated jobs.db
+---
 
-⏰ Schedule (IST)
+## ☁️ Cloud Deployment (GitHub Actions)
 
-Time	UTC Cron
-8:00 AM	30 2 * * *
-8:00 PM	30 14 * * *
+**Workflow:** `.github/workflows/job-alerts.yml`
 
+- Ubuntu runner
+- Python 3.11
+- Secure secrets injection
+- Cron‑based scheduling
+- Auto‑commit of `jobs.db`
 
-⸻
+### ⏰ Schedule (IST)
 
-🔐 Security Design
-	•	❌ No hardcoded secrets
-	•	✅ GitHub Secrets for all tokens
-	•	✅ API keys rotated if exposed
-	•	✅ Minimal permissions (contents: write only)
+| Time | UTC Cron |
+|-----|----------|
+| 8:00 AM | `30 2 * * *` |
+| 8:00 PM | `30 14 * * *` |
 
-⸻
+---
 
-📂 Repository Structure
+## 🔐 Security Design
 
+- ❌ No hard‑coded secrets
+- ✅ GitHub Actions secrets only
+- ✅ API keys rotated on exposure
+- ✅ Minimal permissions (`contents: write`)
+
+---
+
+## 📂 Repository Structure
+
+```
 job-alert-bot/
 ├── .github/workflows/
 │   └── job-alerts.yml
@@ -200,7 +192,6 @@ job-alert-bot/
 ├── data/
 │   └── jobs.db
 ├── resume_parser/
-│   ├── __init__.py
 │   └── matcher_job.py
 ├── src/
 │   ├── main.py
@@ -208,27 +199,30 @@ job-alert-bot/
 │   └── database.py
 ├── requirements.txt
 └── README.md
+```
 
+---
 
-⸻
+## 🏁 Summary
 
-🏁 Summary
+This system is a **cloud‑native, resume‑aware job intelligence pipeline** designed for real‑world job searching:
 
-This project is a production-grade, resume-aware job intelligence system:
-	•	Runs fully in the cloud
-	•	Requires zero manual intervention
-	•	Prioritizes what actually matters
-	•	Designed with clean architecture & security
+- Fully automated
+- Secure by default
+- Easy to extend
+- Zero manual effort
 
-⸻
+---
 
-📌 Future Enhancements
-	•	Weekly summary mode
-	•	Score threshold filtering
-	•	Slack / WhatsApp notifications
-	•	Multi-resume support
-	•	Dashboard UI
+## 📌 Future Enhancements
 
-⸻
+- Weekly summary emails
+- Score threshold filtering
+- Slack / WhatsApp notifications
+- Multi‑resume support
+- Dashboard UI
 
-Built for real-world job hunting, not demos. 💼🚀
+---
+
+**Built for real job hunting — not demos.** 🚀
+
