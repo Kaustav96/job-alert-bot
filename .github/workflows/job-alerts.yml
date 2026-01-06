@@ -1,5 +1,8 @@
 name: Job Alerts Automation
 
+permissions:
+  contents: write
+  
 on:
   schedule:
     - cron: "30 15 * * *"   # 9:00 PM IST (UTC 15:30)
