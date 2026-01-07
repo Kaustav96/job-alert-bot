@@ -19,4 +19,4 @@ def send_email(subject, html):
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(sender, password)
-        server.send_message(sender, all_recipients, msg.as_string())
+        server.sendmail(sender, all_recipients, msg.as_string())
